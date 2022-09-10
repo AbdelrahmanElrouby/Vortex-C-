@@ -3,22 +3,28 @@
 
 int main()
 {
-    int height; 
+    int height;
     printf("Please enter the height of the pyramid :") ;
     scanf("%d",&height) ;
-    if(height <2 || height > 5) 
+
+    int stars[5] = {1,3,5,7,9} ;
+    if(height <2 || height > 5)
     {
         printf("Invalid height") ;
     }
-    else 
+    else
     {
         for(int i =0 ; i<height ; i++)
         {
-            for(int j = 0 ; j<i+1 ;j++ )
+            for(int j=height-i-1; j>0 ; j--)
             {
-                printf("*") ;
+                printf(" ");
             }
-            printf("\n") ;
+            for(int k=stars[i] ; k>0 ; k--)
+            {
+                printf("*");
+            }
+            printf("\n");
         }
     }
     return 0;
