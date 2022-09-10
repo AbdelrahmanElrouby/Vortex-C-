@@ -13,4 +13,5 @@ int main()
     scanf("%s",Celebrity) ;
     printf("Rose are %s\n%s are blue\nI love %s\n",Color,PluralNoun,Celebrity) ;
     return 0;
+    
 }
