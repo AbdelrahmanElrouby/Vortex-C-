@@ -9,9 +9,9 @@ void Draw_Square(int) ; // By Danial Adel
 void Draw_Triangle(int) ; // By Mohammed Maher
 void Draw_Pyramid(int) ; 
 
-int main()
+int main() // By Abdelrahman Mohamed
 {
-    // By Abdelrahman Mohamed
+    
     char shape;
     int h ;
     printf("\t\t\t\tENTER THE SHAPE YOU WANT TO DRAW :\n\t\t\t\t------------------------------------------\n\t\t\t\t");
@@ -95,7 +95,7 @@ void Draw_Triangle(int h)
 {
     for(int i =0 ; i<h ; i++)
         {
-            for(int j = 0 ; j<i+1 ;j++ )
+            for(int j = 0 ; j<=i ;j++ )
             {
                 printf("* ") ;
             }
