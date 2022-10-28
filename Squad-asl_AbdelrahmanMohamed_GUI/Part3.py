@@ -1,8 +1,12 @@
+from ast import Not
+from sqlite3 import Time
 import subprocess
 from subprocess import Popen, PIPE
 from sys import stdout
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import * 
+from PyQt5.QtCore import * 
 from multiprocessing.connection import Listener
 from multiprocessing import Process, current_process
 import threading
@@ -10,11 +14,19 @@ from threading import Thread
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtGui import QImage
 from functools import partial
+import sys
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1229, 882)
+        self.count = 0
+        self.flag = False
+        self.minutes = 0
+        self.hours = 0
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.showTime)
+        self.timer.start(100)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.label = QtWidgets.QLabel(self.centralwidget)
@@ -90,8 +102,20 @@ class Ui_MainWindow(object):
         self.label_12.setFont(font)
         self.label_12.setObjectName("label_12")
         self.label_13 = QtWidgets.QLabel(self.centralwidget)
-        self.label_13.setGeometry(QtCore.QRect(550, 500, 101, 61))
+        self.label_13.setGeometry(QtCore.QRect(650, 500, 101, 61))
         self.label_13.setObjectName("label_13")
+        self.label_30 = QtWidgets.QLabel(self.centralwidget)
+        self.label_30.setGeometry(QtCore.QRect(600, 500, 101, 61))
+        self.label_30.setObjectName("label_30")
+        self.label_31 = QtWidgets.QLabel(self.centralwidget)
+        self.label_31.setGeometry(QtCore.QRect(550, 500, 101, 61))
+        self.label_31.setObjectName("label_31")
+        self.label_32 = QtWidgets.QLabel(self.centralwidget)
+        self.label_32.setGeometry(QtCore.QRect(575, 500, 101, 61))
+        self.label_32.setObjectName("label_32")
+        self.label_33 = QtWidgets.QLabel(self.centralwidget)
+        self.label_33.setGeometry(QtCore.QRect(630, 500, 101, 61))
+        self.label_33.setObjectName("label_33")
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(480, 560, 71, 28))
         self.pushButton.setObjectName("pushButton")
@@ -125,7 +149,7 @@ class Ui_MainWindow(object):
         self.label_19.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_19.setObjectName("label_19")
         self.label_20 = QtWidgets.QLabel(self.centralwidget)
-        self.label_20.setGeometry(QtCore.QRect(770, 640, 200, 31))
+        self.label_20.setGeometry(QtCore.QRect(770, 640, 250, 31))
         self.label_20.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_20.setObjectName("label_20")
         self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
@@ -161,6 +185,10 @@ class Ui_MainWindow(object):
         self.label_11.raise_()
         self.label_12.raise_()
         self.label_13.raise_()
+        self.label_30.raise_()
+        self.label_31.raise_()
+        self.label_32.raise_()
+        self.label_33.raise_()
         self.pushButton.raise_()
         self.pushButton_2.raise_()
         self.pushButton_3.raise_()
@@ -201,21 +229,26 @@ class Ui_MainWindow(object):
         self.pushButton_6.clicked.connect(partial(self.pushed,self.pushButton_6.text() ))
         self.pushButton_7.clicked.connect(partial(self.pushed,self.pushButton_7.text() ))
         self.pushButton_8.clicked.connect(partial(self.pushed,self.pushButton_8.text() ))
+        self.pushButton.clicked.connect(self.startTime)
+        self.pushButton_2.clicked.connect(self.Pause)
+        self.pushButton_3.clicked.connect(self.Re_set)
         MainWindow.closeEvent = self.closeEvent
 
-    running = False
     def closeEvent(self, event):
-        global running 
-        running = True
+        self.conn.close()
+        # self.conn.__exit__()
         event.accept()
     def pushed(self,text):
-        self.label_20.setText(f'Current mode : {text}')
+        self.label_20.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#ffffff;\">Current mode : {text}</span></p></body></html>")
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label_12.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" color:#ffffff;\">Current speed:</span></p></body></html>"))
         self.label_13.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">00:00:00</span></p></body></html>"))
+        self.label_30.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">00 :</span></p></body></html>"))
+        self.label_31.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">00 :</span></p></body></html>"))
+        self.label_31.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">:</span></p></body></html>"))
         self.pushButton.setText(_translate("MainWindow", "start"))
         self.pushButton_2.setText(_translate("MainWindow", "stop"))
         self.pushButton_3.setText(_translate("MainWindow", "reset"))
@@ -232,10 +265,45 @@ class Ui_MainWindow(object):
         self.pushButton_8.setText(_translate("MainWindow", "Manual"))
         self.label_18.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:28pt; color:#ffffff;\">Camera 1</span></p></body></html>"))
         self.label_21.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:28pt; color:#ffffff;\">Camera 2</span></p></body></html>"))
+    def showTime(self):
+        if self.flag:
+            self.count+= 1
+        time = str(self.count / 10)
+        self.label_13.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{time}</span></p></body></html>')
+        self.label_30.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{self.minutes}</span></p></body></html>')
+        self.label_31.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{self.hours}</span></p></body></html>')
+        self.label_32.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">:</span></p></body></html>')
+        self.label_33.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">:</span></p></body></html>')
+        if time =="60.0":
+                self.count = 0
+                self.minutes += 1
+                self.label_13.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{time}</span></p></body></html>')
+                self.label_30.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{self.minutes} : </span></p></body></html>')
+        if self.minutes == 60:
+            self.count = 0
+            self.minutes = 0
+            self.hours += 1
+            self.label_13.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{time}</span></p></body></html>')
+            self.label_30.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{self.minutes} : </span></p></body></html>')
+            self.label_31.setText(f'<html><head/><body><p><span style=\" font-size:14pt; color:#ffffff;\">{self.hours} : </span></p></body></html>')
+
+
+    def startTime(self):
+        self.flag = True
+    def Pause(self):
+        self.flag = False
+    def Re_set(self):
+        self.flag = False
+        self.count = 0
+        self.minutes = 0
+        self.label_13.setText(str(self.count))
+        self.label_30.setText(str(self.minutes))
+    
+    
     def runScript(self) :
         if(self.comboBox.currentIndex()==0) :
             args=["python",'client.py']
-            process = subprocess.Popen(args, stdout=subprocess.PIPE)
+            subprocess.Popen(args, stdout=subprocess.PIPE)
     def convertTopix(self,msg) :
         height ,width , channel = msg.shape
         bytesPerLine = 3*width
@@ -252,11 +320,6 @@ class Ui_MainWindow(object):
         while True :
             msg = self.conn.recv()
             self.label_21.setPixmap(self.convertTopix(msg))
-            global running
-            if running :
-                self.conn.close()
-                self.conn.__exit__()
-                break
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
